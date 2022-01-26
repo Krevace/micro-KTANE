@@ -1,0 +1,82 @@
+char symbolRows[6][7] = { {'A', 'B', 'C', 'D', 'E', 'F', 'G'},
+                          {'H', 'A', 'G', 'I', 'J', 'F', 'K'},
+                          {'L', 'M', 'I', 'N', 'O', 'C', 'J'},
+                          {'P', 'Q', 'R', 'E', 'N', 'K', 'S'},
+                          {'T', 'S', 'R', 'U', 'Q', 'V', 'W'},
+                          {'P', 'H', 'X', 'Y', 'T', 'Z', '0'} };
+int selectedSymbolRow; 
+char selectedSymbols[4];
+char sortedSymbols[4];
+int rightInARow = 0;
+
+int symbolPins[4] = {2, 4, 5, 18};
+int greenLedPins[4] = {19, 21, 22, 23};
+int redLedPin = 12;
+
+void setup() {
+  Serial.begin(9600);
+  randomSeed(analogRead(0));
+  for (int i = 0; i < 4; i++) {
+    pinMode(symbolPins[i], INPUT_PULLUP);
+    pinMode(greenLedPins[i], OUTPUT);
+    digitalWrite(greenLedPins[i], LOW); 
+  }
+  pinMode(redLedPin, OUTPUT);
+  digitalWrite(redLedPin, LOW); 
+
+  selectedSymbolRow = random(0, 6); 
+  for (int i = 0; i < 4; i++) {
+    char symbol;
+    bool alreadyExists;
+    do {
+      alreadyExists = false;
+      symbol = symbolRows[selectedSymbolRow][random(0, 7)];
+      for (int i = 0; i < 4; i++) {
+        if (selectedSymbols[i] == symbol) alreadyExists = true;
+      }
+    } while (alreadyExists);
+    selectedSymbols[i] = symbol;
+  }
+  Serial.print("Symbols: ");
+  for (int i = 0; i < 4; i++) {
+    Serial.print(selectedSymbols[i]);
+  }
+  Serial.println();
+
+  int u = 0;
+  for (int i = 0; i < 7; i++) {
+    for (int o = 0; o < 4; o++) {
+      if (symbolRows[selectedSymbolRow][i] == selectedSymbols[o]) {
+        sortedSymbols[u] = selectedSymbols[o];
+        u++;
+      }
+    }
+  }
+  Serial.print(" Sorted: ");
+  for (int i = 0; i < 4; i++) {
+    Serial.print(sortedSymbols[i]);
+  }
+}
+
+void loop() {
+  for (int i = 0; i < 4; i++) {
+    if (!digitalRead(symbolPins[i])) {
+      bool equals = false;
+      for (int o = rightInARow; o > -1; o--) {
+        if (selectedSymbols[i] == sortedSymbols[o]) {
+          if (o == rightInARow) rightInARow++;
+          equals = true; 
+          o = -1;
+        }
+      }
+      if (equals) {
+        digitalWrite(greenLedPins[i], HIGH); 
+      } else {
+        digitalWrite(redLedPin, HIGH);
+        delay(500);
+        digitalWrite(redLedPin, LOW);
+      }
+    }
+  }
+  delay(50);
+}
