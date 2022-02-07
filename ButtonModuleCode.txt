@@ -1,0 +1,150 @@
+int batteryAmount; 
+int dBatteryAmount;
+int aBatteryAmount; 
+String indicatorLabels[11] = {"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"};
+String chosenLabels[4];
+bool chosenLights[4];
+String buttonLabels[4] = {"ABORT", "DETONATE", "HOLD", "PRESS"};
+char buttonColors[5] = {'b', 'R', 'W', 'Y', 'B'};
+char releaseColor[4] = {'b', 'W', 'Y', 'R'};
+int releaseNum[4] = {4, 1, 5, 1};
+String buttonLabel;
+char buttonColor;
+bool hold;
+int i = 0;
+long currentMillis;
+long pastMillis = 0;
+bool defused = false;
+
+int buttonPin = 2;
+int ledPins[3] = {23, 22, 21}; 
+int greenLedPin = 14;
+int redLedPin = 12;
+
+void setup() {
+  Serial.begin(9600);
+  randomSeed(analogRead(0));
+  pinMode(buttonPin, INPUT_PULLUP);
+  for (int i = 0; i < 3; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+  pinMode(greenLedPin, OUTPUT);
+  pinMode(redLedPin, OUTPUT);
+  digitalWrite(greenLedPin, LOW); 
+  digitalWrite(redLedPin, LOW); 
+
+  batteryAmount = random(0, 7); 
+  do {
+    aBatteryAmount = random(0, batteryAmount+1);
+  } while (aBatteryAmount % 2);
+  dBatteryAmount = batteryAmount - aBatteryAmount;
+  Serial.println(" Batteries: " + String(aBatteryAmount) + "AA " + String(dBatteryAmount) + "D");
+
+  for (int i = 0; i < 4; i++) {
+    if (random(0, 2)) {
+      String indicator;
+      bool alreadyExists;
+      do {
+        alreadyExists = false;
+        indicator = indicatorLabels[random(0,11)];
+        for (int i = 0; i < 4; i++) {
+          if (indicator == chosenLabels[i]) alreadyExists = true;
+        }
+      } while (alreadyExists);
+      chosenLabels[i] = indicator;
+      if (random(0,2)) chosenLights[i] = true;
+    }
+  }
+  Serial.print("Indicators: ");
+  for (int i = 0; i < 4; i++) {
+    if (!chosenLabels[i].isEmpty()) {
+      Serial.print(chosenLabels[i]);
+      if (chosenLights[i]) Serial.print("(LIT)");
+      else Serial.print("(OFF)");
+      Serial.print(" ");
+    }
+  }
+  Serial.println();
+
+  buttonLabel = buttonLabels[random(0, 4)];
+  buttonColor = buttonColors[random(0, 5)];
+  Serial.print("    Button: ");
+  Serial.print(buttonColor);
+  Serial.print(" " + buttonLabel);
+  Serial.println();
+
+  Serial.print("      Time: ");
+  Serial.print(i);
+  Serial.print(" ");
+
+  if (buttonColor == 'b' && buttonLabel == "ABORT") hold = true;
+  else if (batteryAmount > 1 && buttonLabel == "DETONATE") hold = false;
+  else if (buttonColor == 'W' && litIndicator("CAR")) hold = true;
+  else if (batteryAmount > 2 && litIndicator("FRK")) hold = false;
+  else if (buttonColor == 'Y') hold = true;
+  else if (buttonColor == 'R' && buttonLabel == "HOLD") hold = false;
+  else hold = true;
+}
+
+void loop() {
+  if (!defused) {
+    incrementTime();
+    if (!digitalRead(buttonPin)) {
+      int rand = random(0,4);
+      char stripColor = releaseColor[rand];
+      int chosenReleaseNum = releaseNum[rand];
+      if (stripColor == 'b') ledColor(0, 0, 255);
+      else if (stripColor == 'W') ledColor(255, 255, 255);
+      else if (stripColor == 'Y') ledColor(255, 255, 0);
+      else if (stripColor == 'R') ledColor(255, 0, 0);
+      long holdStart = currentMillis; 
+      while (!digitalRead(buttonPin)) {
+        incrementTime();
+        delay(20);
+      }
+      if (!hold) {
+        if (currentMillis - holdStart > 200) {
+          digitalWrite(redLedPin, HIGH);
+          delay(500);
+          digitalWrite(redLedPin, LOW);
+        } else {
+          digitalWrite(greenLedPin, HIGH);
+          defused = true;
+        }
+      } else {
+        if (currentMillis - holdStart > 200 && i == chosenReleaseNum) {
+          digitalWrite(greenLedPin, HIGH);
+          defused = true;
+        } else {
+          digitalWrite(redLedPin, HIGH);
+          delay(500);
+          digitalWrite(redLedPin, LOW);
+        }
+      }
+    }
+  }
+  delay(20);
+}
+
+bool litIndicator(String ind) {
+  for (int i = 0; i < 4; i++) {
+    if (chosenLabels[i] == ind && chosenLights[i]) return true;
+  }
+  return false;
+}
+
+void incrementTime() {
+  currentMillis = millis();
+  if (currentMillis - pastMillis >= 1000) {
+    i = i == 9 ? 0 : i + 1;
+    Serial.print(i);
+    Serial.print(" ");
+    pastMillis = currentMillis;
+  }
+}
+
+void ledColor(int r, int g, int b) {
+  analogWrite(ledPins[0], r);
+  analogWrite(ledPins[1], g);
+  analogWrite(ledPins[2], b);
+}
