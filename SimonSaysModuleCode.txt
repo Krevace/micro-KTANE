@@ -10,8 +10,16 @@ int vowel2[4] = {3, 0, 1, 2};
 int noVowel0[4] = {1, 3, 2, 0};
 int noVowel1[4] = {0, 2, 1, 3};
 int noVowel2[4] = {2, 3, 0, 1};
+long playerInputTime = -5000; 
+long currentMillis; 
+long previousMillis = -500;
+int currentSequencePosition = 0; 
+int playerSequencePosition = 0; 
+int playerInputPosition = 0;
+long previousRedLedMillis = 0;
+int pressedLed = -1;
 
-int ledPins[4] = {15, 4, 6, 18};
+int ledPins[4] = {15, 4, 5, 18};
 int buttonPins[4] = {19, 21, 22, 23};
 int greenLedPin = 14;
 int redLedPin = 12;
@@ -19,6 +27,15 @@ int redLedPin = 12;
 void setup() {
   Serial.begin(115200);
   randomSeed(analogRead(0));
+  for (int i = 0; i < 4; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW);
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
+  pinMode(greenLedPin, OUTPUT);
+  pinMode(redLedPin, OUTPUT);
+  digitalWrite(greenLedPin, LOW);
+  digitalWrite(redLedPin, LOW);
 
   for (int i = 0; i < 5; i++) {
     serialNum += serialNumChars[random(0, 34)];
@@ -37,7 +54,66 @@ void setup() {
 }
 
 void loop() {
-
+  if (playerSequencePosition < sequenceLength && strikes < 3) {
+    currentMillis = millis();
+    if (currentMillis - playerInputTime >= 250) {
+      if (pressedLed != -1) digitalWrite(ledPins[pressedLed], LOW); 
+      pressedLed = -1; 
+    }
+    if (currentMillis - previousRedLedMillis >= 250) {
+      digitalWrite(redLedPin, LOW); 
+    }
+    if (currentMillis - previousMillis >= 250) {
+      for (int i = 0; i < 4; i++) {
+        if ((currentSequencePosition && sequence[currentSequencePosition-1] == i) || (currentSequencePosition-1 == -1 && sequence[playerSequencePosition] == i)) digitalWrite(ledPins[i], LOW);
+      }
+    }
+    if (currentMillis - playerInputTime >= 5000 && currentMillis - previousMillis >= 500) {
+      playerInputPosition = 0;
+      for (int i = 0; i < 4; i++) {
+        if (sequence[currentSequencePosition] == i) digitalWrite(ledPins[i], HIGH);
+      }
+      currentSequencePosition++; 
+      if (currentSequencePosition > playerSequencePosition) {
+        playerInputTime = currentMillis; 
+        currentSequencePosition = 0; 
+      }
+      previousMillis = currentMillis;
+    }
+    for (int i = 0; i < 4; i++) {  
+      if (!digitalRead(buttonPins[i])) {    
+        while(!digitalRead(buttonPins[i]));
+        digitalWrite(ledPins[i], HIGH);
+        pressedLed = i; 
+        playerInputTime = millis();
+        if (solutionSequence[playerInputPosition] == i) {
+          playerInputPosition++;
+          if (playerInputPosition > playerSequencePosition) {
+            playerSequencePosition++;  
+            playerInputTime -= 4500;
+          }
+        } else {
+          digitalWrite(redLedPin, HIGH);
+          previousRedLedMillis = millis(); 
+          Serial.print("X ");
+          strikes++;    
+          findSolutionSequence();
+          playerInputTime -= 4500; 
+        }
+      }
+    }
+  } else if (strikes < 3) {
+    digitalWrite(greenLedPin, HIGH);
+    for (int i = 0; i < 4; i++) {
+      digitalWrite(ledPins[i], LOW); 
+    }
+  } else {
+    digitalWrite(redLedPin, HIGH);
+    for (int i = 0; i < 4; i++) {
+      digitalWrite(ledPins[i], LOW); 
+    }
+  }
+  delay(20);
 }
 
 void findSolutionSequence() {

@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 26.44,
+      "left": 150.32,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 84.19,
+      "left": 150.32,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn3",
+      "top": 140.08,
+      "left": 149.08,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn4",
+      "top": 28.15,
+      "left": 582.26,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn5",
+      "top": 86.39,
+      "left": 581.04,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn6",
+      "top": 141.76,
+      "left": 581.3,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": -9.34,
+      "left": 666.05,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 41.87,
+      "left": 666.05,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led3",
+      "top": 97.66,
+      "left": 666.06,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led4",
+      "top": 96.36,
+      "left": -56.42,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led5",
+      "top": 36.49,
+      "left": -54.41,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-lcd2004",
+      "id": "lcd1",
+      "top": 5.61,
+      "left": 218.31,
+      "attrs": { "pins": "i2c" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "btn3:2.l", "esp:GND.1", "black", [ "h-30.89", "v-26.07" ] ],
+    [ "btn2:2.l", "esp:GND.1", "black", [ "h-26.52", "v27.58" ] ],
+    [ "btn1:2.l", "esp:GND.1", "black", [ "h-24.27", "v0.52" ] ],
+    [ "btn6:2.l", "esp:GND.1", "black", [ "h-4.58", "v47.77", "h-411.11", "v-79.75" ] ],
+    [ "btn5:2.l", "esp:GND.1", "black", [ "h-1.9", "v106.08", "h-422.34", "v-74.13" ] ],
+    [ "btn4:2.l", "esp:GND.1", "black", [ "h1.12", "v164.97", "h-431.33", "v-84.24" ] ],
+    [ "led3:C", "esp:GND.1", "black", [ "v70.07", "h-565.22", "v-75.68" ] ],
+    [ "led2:C", "esp:GND.1", "black", [ "v8.38", "h-7.19", "v132.75", "h-552.02", "v-73.88" ] ],
+    [ "led1:C", "esp:GND.1", "black", [ "v5.28", "h-7.19", "v210.83", "h-560.42", "v-78.09" ] ],
+    [ "led4:C", "esp:GND.2", "black", [ "v0" ] ],
+    [ "led5:C", "esp:GND.2", "black", [ "v5.35", "h-11.14", "v64.27" ] ],
+    [ "lcd1:GND", "esp:GND.1", "black", [ "h-8.75", "v191.4", "h-100.92", "v-76.37" ] ],
+    [ "lcd1:VCC", "esp:VIN", "red", [ "h-8.75", "v182.45", "h-220.39", "v-70.92" ] ],
+    [ "lcd1:SDA", "esp:D21", "green", [ "h-6.03", "v24.02", "h-102.01", "v-18" ] ],
+    [ "lcd1:SCL", "esp:D22", "green", [ "h-6.57", "v17.8", "h-99.28", "v-49.1" ] ],
+    [ "btn1:1.l", "esp:D15", "white", [ "h-30.35", "v106.37" ] ],
+    [ "btn4:1.l", "esp:D4", "white", [ "h-7.74", "v169.08", "h-465.9", "v-87.36" ] ],
+    [ "btn2:1.l", "esp:D5", "white", [ "h0" ] ],
+    [ "btn5:1.l", "esp:D18", "white", [ "h-7.5", "v122.97", "h-462.98", "v-135.89" ] ],
+    [ "btn3:1.l", "esp:D19", "white", [ "h-41.43", "v-77.77" ] ],
+    [ "btn6:1.l", "esp:D23", "white", [ "h-7.27", "v64.2", "h-463.96", "v-192.18" ] ],
+    [ "led5:A", "esp:D12", "red", [ "v8.99", "h15.74", "v43.05" ] ],
+    [ "led4:A", "esp:D14", "green", [ "v-0.96", "h21", "v-17" ] ],
+    [ "led3:A", "esp:D26", "green", [ "v108.37", "h-695.44", "v-148.53" ] ],
+    [ "led2:A", "esp:D25", "green", [ "v1.18", "h8.9", "v164.46", "h-705.97", "v-157.5" ] ],
+    [ "led1:A", "esp:D33", "green", [ "v-0.38", "h14.06", "v217.9", "h-709.99", "v-169.74" ] ]
+  ]
+}
