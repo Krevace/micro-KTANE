@@ -60,7 +60,7 @@ void loop() {
       if (pressedLed != -1) digitalWrite(ledPins[pressedLed], LOW); 
       pressedLed = -1; 
     }
-    if (currentMillis - previousRedLedMillis >= 250) {
+    if (currentMillis - previousRedLedMillis >= 500) {
       digitalWrite(redLedPin, LOW); 
     }
     if (currentMillis - previousMillis >= 250) {
