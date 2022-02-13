@@ -1,0 +1,247 @@
+#include <LiquidCrystal_I2C.h>
+
+char serialNumChars[34] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+String indicatorLabels[11] = {"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"};
+String portTypes[6] = {"DVI-D", "PS/2", "RJ-45", "Stereo RCA", "Parallel", "Serial"};
+
+bool serialOdd = false;
+int batteryAmount = 0;
+bool indicatorCheck = false;
+bool parallelCheck = false;
+int morseTranslation[26][4] = { {1, 2},
+                                {2, 1, 1, 1},
+                                {2, 1, 2, 1},
+                                {2, 1, 1},
+                                {1},
+                                {1, 1, 2, 1},
+                                {2, 2, 1},
+                                {1, 1, 1, 1},
+                                {1, 1},
+                                {1, 2, 2, 2},
+                                {2, 1, 2},
+                                {1, 2, 1, 1},
+                                {2, 2},
+                                {2, 1},
+                                {2, 2, 2},
+                                {1, 2, 2, 1},
+                                {2, 2, 1, 2},
+                                {1, 2, 1},
+                                {1, 1, 1},
+                                {2},
+                                {1, 1, 2},
+                                {1, 1, 1, 2},
+                                {1, 2, 2},
+                                {2, 1, 1, 2},
+                                {2, 1, 2, 2},
+                                {2, 2, 1, 1}
+                              };
+String morseWords[16] = {"beats", "bistro", "bombs", "boxes", "break", "brick", "flick", "halls", "leaks", "shell", "slick", "steak", "sting", "strobe", "trick", "vector"};  
+String morseFrequencies[16] = {"3.600 MHz", "3.552 MHz", "3.565 MHz", "3.535 MHz", "3.572 MHz", "3.575 MHz", "3.555 MHz", "3.515 MHz", "3.542 MHz", "3.505 MHz", "3.522 MHz", "3.582 MHz", "3.592 MHz", "3.545 MHz", "3.532 MHz", "3.595 MHz"};
+String morseFrequenciesSorted[16] = {"3.505 MHz", "3.515 MHz", "3.522 MHz", "3.532 MHz", "3.535 MHz", "3.542 MHz", "3.545 MHz", "3.552 MHz", "3.555 MHz", "3.565 MHz", "3.572 MHz", "3.575 MHz", "3.582 MHz", "3.592 MHz", "3.595 MHz", "3.600 MHz"};
+String chosenWord; 
+String currentFrequency = morseFrequenciesSorted[0];
+int currentFrequencyPosition = 0;
+String correctFrequency;
+int currentLetter = 0; 
+int currentMorseStep = 0;
+long currentMillis;
+long previousMillis = 0; 
+long currentDuration = 0; 
+bool pressed[3];
+long previousRedLedMillis = 0; 
+int lightState = 0; //0 = letter (250 or 750), 1 = morsebreak (250), 2 = lettergap (750), 3 = wordgap (1750)
+bool defused = false; 
+int strikes = 0;
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);  
+int buttonPins[3] = {4, 5, 18};
+int yellowLedPin = 15;
+int redLedPin = 12;
+int greenLedPin = 14; 
+
+void setup() {
+  //GENERAL SETUP
+  Serial.begin(115200);
+  randomSeed(analogRead(A0));
+  for (int i = 0; i < 3; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
+  pinMode(yellowLedPin, OUTPUT);
+  digitalWrite(yellowLedPin, LOW);
+  pinMode(redLedPin, OUTPUT);
+  digitalWrite(redLedPin, LOW);
+  pinMode(greenLedPin, OUTPUT);
+  digitalWrite(greenLedPin, LOW);
+  lcd.init();                 
+  lcd.backlight();
+
+  //BOMB SETUP
+  Serial.println("--BOMB CONFIGURATION--");
+  String serialNum; 
+  for (int i = 0; i < 5; i++) {
+    serialNum += serialNumChars[random(0, 34)];
+  }
+  serialNum += serialNumChars[random(24, 34)];
+  Serial.println("   Serial: " + serialNum);
+  int x = serialNum.charAt(serialNum.length()-1);
+  if (x % 2) serialOdd = true; 
+
+  int batteryWidgetAmount = random(0, 6); 
+  int indicatorWidgetAmount = random(0, 5-batteryWidgetAmount+1);
+  int portWidgetAmount = 5-batteryWidgetAmount-indicatorWidgetAmount; 
+  Serial.print("  Widgets: "); 
+
+  for (int i = 0; i < batteryWidgetAmount; i++) { 
+    if (random(0, 2)) {
+      Serial.print("|2 AA|");
+      batteryAmount += 2; 
+    } else {
+      Serial.print("|1 D|");
+      batteryAmount++;
+    }
+    Serial.print(" "); 
+  }
+
+  String chosenLabels[5]; 
+  for (int i = 0; i < indicatorWidgetAmount; i++) {
+    String indicator;
+    bool alreadyExists;
+    do {
+      alreadyExists = false;
+      indicator = indicatorLabels[random(0,11)];
+      for (int i = 0; i < 5; i++) {
+        if (indicator == chosenLabels[i]) alreadyExists = true;
+      }
+    } while (alreadyExists);
+    chosenLabels[i] = indicator; 
+    Serial.print("|");
+    Serial.print(indicator); 
+    if (random(0,2)) {
+      Serial.print("(LIT)");
+      if (indicator == "FRK" || indicator == "CAR") indicatorCheck = true; 
+    } else Serial.print("(OFF)");
+    Serial.print("| ");
+  }
+
+  for (int i = 0; i < portWidgetAmount; i++) {
+    int lowerBound = 4;
+    int upperBound = 2;
+    int upperBound2 = 6;
+    if (random(0, 2)) {
+      lowerBound = 0;
+      upperBound = 4;
+      upperBound2 = 4;
+    }
+    Serial.print("|");
+    int portAmount = random(0, upperBound+1); 
+    String chosenPorts[upperBound];
+    String port; 
+    bool alreadyExists; 
+    for (int i = 0; i < portAmount; i++) {
+      do {
+        alreadyExists = false;
+        port = portTypes[random(lowerBound, upperBound2)];
+        for (int i = 0; i < upperBound; i++) {
+          if (port == chosenPorts[i]) alreadyExists = true;
+        }
+      } while (alreadyExists); 
+      chosenPorts[i] = port; 
+      if (port == "Parallel") parallelCheck = true; 
+      Serial.print(port); 
+      if (portAmount > 1 && i < portAmount-1) Serial.print(",");
+    }
+    Serial.print("| ");
+  }
+
+  //MODULE SETUP
+  Serial.println();
+  Serial.println();
+  Serial.println("--MODULE INFORMATION--");
+  
+  //FIND SOLUTION
+  Serial.println();
+  Serial.println("--DEFUSAL SOLUTION--");
+  int rand = random(0, 16); 
+  chosenWord = morseWords[rand];
+  correctFrequency = morseFrequencies[rand]; 
+  Serial.println("     Word: " + chosenWord);
+  Serial.print("Frequency: " + correctFrequency);
+
+  //STRIKES
+  Serial.println();
+  Serial.println();
+  Serial.println("--STATUS--");
+  Serial.print("  Strikes: ");
+}
+
+void loop() {
+  if (strikes < 3) {
+    if (defused) {
+      digitalWrite(greenLedPin, HIGH);
+      digitalWrite(yellowLedPin, LOW);
+    }
+    currentMillis = millis();
+    if (currentMillis - previousRedLedMillis >= 500) digitalWrite(redLedPin, LOW);
+    if (currentMillis - previousMillis > currentDuration) {
+      if (lightState == 0) {
+        if (morseTranslation[chosenWord.charAt(currentLetter) - 97][currentMorseStep] == 2) currentDuration = 750; 
+          else currentDuration = 250; 
+        lightState = 1; 
+        if (!defused) digitalWrite(yellowLedPin, HIGH);
+      } else if (lightState == 1) {
+        currentDuration = 250; 
+        currentMorseStep++; 
+        int morseLength;
+        for (int i = 0; i < 4; i++) {
+          if (morseTranslation[chosenWord.charAt(currentLetter) - 97][i]) {
+            morseLength = i; 
+          }
+        }
+        if (currentMorseStep > morseLength) {
+          currentLetter++;
+          currentMorseStep = 0; 
+          lightState = 2; 
+        } else lightState = 0; 
+        digitalWrite(yellowLedPin, LOW);
+      } else if (lightState == 2) {
+        currentDuration = 750; 
+        if (currentLetter > chosenWord.length()-1) lightState = 3;
+          else lightState = 0;
+        digitalWrite(yellowLedPin, LOW);
+      } else if (lightState == 3) {
+        currentDuration = 1750;
+        currentLetter = 0; 
+        lightState = 0; 
+        digitalWrite(yellowLedPin, LOW);
+      }
+      previousMillis = currentMillis;
+    }
+    lcd.setCursor(4, 0);
+    lcd.print(currentFrequency); 
+    for (int i = 0; i < 3; i++) {
+      if (!digitalRead(buttonPins[i])) pressed[i] = true; 
+      if (digitalRead(buttonPins[i]) && pressed[i]) {
+        pressed[i] = false;
+        if (i == 0) currentFrequencyPosition--;
+          else if (i == 1) currentFrequencyPosition++; 
+          else if (i == 2) {
+            if (currentFrequency == correctFrequency) defused = true;
+              else {
+                strikes++; 
+                Serial.print("X ");
+                digitalWrite(redLedPin, HIGH); 
+                previousRedLedMillis = currentMillis; 
+              }
+          }
+      }
+    }
+    if (currentFrequencyPosition > 15) currentFrequencyPosition = 15;
+      else if (currentFrequencyPosition < 0) currentFrequencyPosition = 0;
+    currentFrequency = morseFrequenciesSorted[currentFrequencyPosition];
+  } else {
+    digitalWrite(redLedPin, HIGH); 
+    digitalWrite(greenLedPin, LOW); 
+    digitalWrite(yellowLedPin, LOW);
+  }
+  delay(20); 
+}

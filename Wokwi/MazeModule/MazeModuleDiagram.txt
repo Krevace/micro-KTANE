@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-max7219-matrix",
+      "id": "matrix1",
+      "top": 49.62,
+      "left": 214.81,
+      "attrs": { "chain": "1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": -3.61,
+      "left": 237.01,
+      "attrs": { "color": "black" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 61.69,
+      "left": 341.62,
+      "attrs": { "color": "black" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn3",
+      "top": 133.33,
+      "left": 238.92,
+      "attrs": { "color": "black" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn4",
+      "top": 65.5,
+      "left": 138.75,
+      "attrs": { "color": "black" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 65.49,
+      "left": -50.81,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 109.24,
+      "left": -51.44,
+      "attrs": { "color": "green" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "btn4:2.l", "esp:GND.1", "black", [ "h-12.63", "v46.94" ] ],
+    [ "btn3:2.l", "esp:GND.1", "black", [ "h-107.1", "v-22.16" ] ],
+    [ "btn2:2.l", "esp:GND.1", "black", [ "h-5.66", "v84.99", "h-198.44", "v-35.5" ] ],
+    [ "btn1:2.l", "esp:GND.1", "black", [ "h-110.26", "v119.22" ] ],
+    [ "led1:C", "esp:GND.2", "black", [ "v5.27", "h-17.54", "v49.19", "h46.39", "v-13.97" ] ],
+    [ "led2:C", "esp:GND.2", "black", [ "v6.23", "h24.46", "v-6.15" ] ],
+    [ "led1:A", "esp:D12", "red", [ "v3.03", "h20.86", "v18.45" ] ],
+    [ "led2:A", "esp:D14", "green", [ "v-6.62", "h14.22", "v-23.48" ] ],
+    [ "btn1:1.l", "esp:D15", "gray", [ "h-118.08", "v132.52" ] ],
+    [ "btn2:1.l", "esp:D2", "gray", [ "h-5.26", "v-76.99", "h-221.9", "v136.38" ] ],
+    [ "btn3:1.l", "esp:D4", "gray", [ "h-127.26", "v-21.75" ] ],
+    [ "matrix1:V+", "esp:VIN", "red", [ "h7.69", "v137.33", "h-338.17", "v-46.95" ] ],
+    [ "matrix1:GND", "esp:GND.1", "black", [ "h2.66", "v110.96", "h-201.78", "v-36.33" ] ],
+    [ "matrix1:CS", "esp:D5", "green", [ "h-0.74", "v33.29", "h-189.47", "v-43.04" ] ],
+    [ "btn4:1.l", "esp:D19", "gray", [ "h0" ] ]
+  ]
+}
