@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-led", "id": "led1", "top": 40.27, "left": -53, "attrs": { "color": "red" } },
+    {
+      "type": "wokwi-lcd2004",
+      "id": "lcd1",
+      "top": 4.54,
+      "left": 148.43,
+      "attrs": { "pins": "i2c" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn6",
+      "top": 197.28,
+      "left": 248.32,
+      "attrs": { "color": "white" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn7",
+      "top": 196.72,
+      "left": 338.78,
+      "attrs": { "color": "white" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "led1:C", "esp:GND.2", "black", [ "v5.28", "h-7.92", "v57.19" ] ],
+    [ "led1:A", "esp:D12", "red", [ "v1.46", "h22.21", "v46.52" ] ],
+    [ "lcd1:GND", "esp:GND.1", "black", [ "h-8.68", "v58.93" ] ],
+    [ "lcd1:SDA", "esp:D21", "green", [ "h-9.84", "v-50.38" ] ],
+    [ "lcd1:SCL", "esp:D22", "green", [ "h-10.99", "v-91.14" ] ],
+    [ "btn6:2.l", "btn7:2.l", "black", [ "h-1.2", "v16.88", "h66.51" ] ],
+    [ "btn6:2.l", "esp:GND.1", "black", [ "h-115.41", "v-86.75" ] ],
+    [ "btn6:1.l", "esp:D15", "white", [ "h-112.1", "v-69.69" ] ],
+    [ "btn7:1.l", "esp:D2", "white", [ "h-3.73", "v-10.62", "h-191.51", "v-71.75" ] ],
+    [ "lcd1:VCC", "esp:VIN", "red", [ "h-9.75", "v163.57", "h-146.36", "v-50.76" ] ]
+  ]
+}

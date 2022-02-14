@@ -66,6 +66,13 @@
       "top": 140.41,
       "left": 233.32,
       "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led6",
+      "top": 145.76,
+      "left": -57.07,
+      "attrs": { "color": "green" }
     }
   ],
   "connections": [
@@ -88,6 +95,8 @@
     [ "led2:A", "esp:D19", "green", [ "v14.98", "h-58.86", "v48.3" ] ],
     [ "led3:A", "esp:D21", "green", [ "v12.5", "h-141.25", "v45.81" ] ],
     [ "led4:A", "esp:D22", "green", [ "v8.59", "h-55.66", "v-159.82" ] ],
-    [ "led5:A", "esp:D23", "green", [ "v11.08", "h-143.39", "v-191.07" ] ]
+    [ "led5:A", "esp:D23", "green", [ "v11.08", "h-143.39", "v-191.07" ] ],
+    [ "led6:C", "esp:GND.2", "black", [ "v16.4", "h37.34", "v-51.33" ] ],
+    [ "led6:A", "esp:D14", "green", [ "v-0.93", "h23.34", "v-66.67" ] ]
   ]
 }

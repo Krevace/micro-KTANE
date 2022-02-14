@@ -151,7 +151,7 @@ int redLedPin = 12;
 void setup() {
   //GENERAL SETUP
   Serial.begin(115200);
-  randomSeed(analogRead(A0));
+  randomSeed(analogRead(0));
   for (int i = 0; i < 3; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP); 
   }

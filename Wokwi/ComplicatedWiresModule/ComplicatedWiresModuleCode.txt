@@ -26,7 +26,7 @@ int redLedPin = 12;
 void setup() {
   //GENERAL SETUP
   Serial.begin(115200); 
-  randomSeed(analogRead(A0));
+  randomSeed(analogRead(0));
   for (int i = 0; i < 6; i++) {
     pinMode(wirePin[i], INPUT_PULLUP);
     pinMode(ledPin[i], OUTPUT);

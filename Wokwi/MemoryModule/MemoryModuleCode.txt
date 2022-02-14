@@ -20,7 +20,7 @@ bool defused = false;
 void setup() {
   //GENERAL SETUP
   Serial.begin(115200);
-  randomSeed(analogRead(A0));
+  randomSeed(analogRead(0));
 
   //BOMB SETUP
   Serial.println("--BOMB CONFIGURATION--");

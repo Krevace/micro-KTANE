@@ -52,6 +52,7 @@ long previousRedLedMillis = 0;
 int lightState = 0; //0 = letter (250 or 750), 1 = morsebreak (250), 2 = lettergap (750), 3 = wordgap (1750)
 bool defused = false; 
 int strikes = 0;
+bool needToDisplay = true;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
 int buttonPins[3] = {4, 5, 18};
@@ -62,7 +63,7 @@ int greenLedPin = 14;
 void setup() {
   //GENERAL SETUP
   Serial.begin(115200);
-  randomSeed(analogRead(A0));
+  randomSeed(analogRead(0));
   for (int i = 0; i < 3; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
   }
@@ -216,8 +217,11 @@ void loop() {
       }
       previousMillis = currentMillis;
     }
-    lcd.setCursor(4, 0);
-    lcd.print(currentFrequency); 
+    if (needToDisplay) {
+      lcd.setCursor(4, 0);
+      lcd.print(currentFrequency); 
+      needToDisplay = false;
+    }
     for (int i = 0; i < 3; i++) {
       if (!digitalRead(buttonPins[i])) pressed[i] = true; 
       if (digitalRead(buttonPins[i]) && pressed[i]) {
@@ -233,6 +237,7 @@ void loop() {
                 previousRedLedMillis = currentMillis; 
               }
           }
+        needToDisplay = true;
       }
     }
     if (currentFrequencyPosition > 15) currentFrequencyPosition = 15;
@@ -242,6 +247,7 @@ void loop() {
     digitalWrite(redLedPin, HIGH); 
     digitalWrite(greenLedPin, LOW); 
     digitalWrite(yellowLedPin, LOW);
+    lcd.clear();
   }
   delay(20); 
 }

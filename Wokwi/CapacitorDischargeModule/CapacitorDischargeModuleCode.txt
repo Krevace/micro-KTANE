@@ -1,3 +1,5 @@
+#include <LiquidCrystal_I2C.h>
+
 char serialNumChars[34] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 String indicatorLabels[11] = {"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"};
 String portTypes[6] = {"DVI-D", "PS/2", "RJ-45", "Stereo RCA", "Parallel", "Serial"};
@@ -7,40 +9,28 @@ int batteryAmount = 0;
 bool indicatorCheck = false;
 bool parallelCheck = false;
 int strikes = 0;
-bool defused = false;
-char symbolRows[6][7] = { {'A', 'B', 'C', 'D', 'E', 'F', 'G'},
-                          {'H', 'A', 'G', 'I', 'J', 'F', 'K'},
-                          {'L', 'M', 'I', 'N', 'O', 'C', 'J'},
-                          {'P', 'Q', 'R', 'E', 'N', 'K', 'S'},
-                          {'T', 'S', 'R', 'U', 'Q', 'V', 'W'},
-                          {'P', 'H', 'X', 'Y', 'T', 'Z', '0'} };
-int selectedSymbolRow; 
-char selectedSymbols[4];
-char sortedSymbols[4];
-int rightInARow = 0;
 long currentMillis;
 long previousRedLedMillis = 0;
-int pressed[4];
+long previousMillis = 0;
+long startOffset;
+int timerNum = 45;
+bool hold = false;
 
-//ESP32 PINS
-int symbolPins[4] = {2, 4, 5, 18};
-int greenLedPins[4] = {19, 21, 22, 23};
+//ESP32 Pins
+int buttonPin = 23;
+int ledPins[9] = {13, 22, 21, 19, 18, 5, 4, 2, 15};
 int redLedPin = 12;
-int greenLedPin = 14;
 
 void setup() {
   //GENERAL SETUP
   Serial.begin(115200);
-  randomSeed(analogRead(0));
-  for (int i = 0; i < 4; i++) {
-    pinMode(symbolPins[i], INPUT_PULLUP);
-    pinMode(greenLedPins[i], OUTPUT);
-    digitalWrite(greenLedPins[i], LOW); 
+  pinMode(buttonPin, INPUT_PULLUP);
+  for (int i = 0; i < 9; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    digitalWrite(ledPins[i], LOW); 
   }
   pinMode(redLedPin, OUTPUT);
-  digitalWrite(redLedPin, LOW); 
-  pinMode(greenLedPin, OUTPUT);
-  digitalWrite(greenLedPin, LOW); 
+  digitalWrite(redLedPin, LOW);
 
   //BOMB SETUP
   Serial.println("--BOMB CONFIGURATION--");
@@ -124,84 +114,54 @@ void setup() {
   Serial.println();
   Serial.println();
   Serial.println("--MODULE INFORMATION--");
-  selectedSymbolRow = random(0, 6); 
-  for (int i = 0; i < 4; i++) {
-    char symbol;
-    bool alreadyExists;
-    do {
-      alreadyExists = false;
-      symbol = symbolRows[selectedSymbolRow][random(0, 7)];
-      for (int i = 0; i < 4; i++) {
-        if (selectedSymbols[i] == symbol) alreadyExists = true;
-      }
-    } while (alreadyExists);
-    selectedSymbols[i] = symbol;
-  }
-  Serial.print("Symbols: ");
-  for (int i = 0; i < 4; i++) {
-    Serial.print(selectedSymbols[i]);
-  }
-  Serial.println();
   
   //FIND SOLUTION
   Serial.println();
   Serial.println("--DEFUSAL SOLUTION--");
-  int u = 0;
-  for (int i = 0; i < 7; i++) {
-    for (int o = 0; o < 4; o++) {
-      if (symbolRows[selectedSymbolRow][i] == selectedSymbols[o]) {
-        sortedSymbols[u] = selectedSymbols[o];
-        u++;
-      }
-    }
-  }
-  Serial.print(" Sorted: ");
-  for (int i = 0; i < 4; i++) {
-    Serial.print(sortedSymbols[i]);
-  }
+  Serial.print("HOLD BEFORE TIMER RUNS OUT");
 
-  //STRIKES
+  //STATUS
   Serial.println();
   Serial.println();
   Serial.println("--STATUS--");
-  Serial.print("Strikes: ");
+  Serial.print("   Time: "); 
+  Serial.print(timerNum);
+  Serial.print(" ");
+
+  startOffset = millis();
 }
 
 void loop() {
   if (strikes < 3) {
-    currentMillis = millis();
+    currentMillis = millis() - startOffset; 
     if (currentMillis - previousRedLedMillis >= 500) digitalWrite(redLedPin, LOW);
-    if (!defused) {
-      for (int i = 0; i < 4; i++) {
-        if (!digitalRead(symbolPins[i])) pressed[i] = true; 
-        if (digitalRead(symbolPins[i]) && pressed[i]) {
-          pressed[i] = false;
-          bool equals = false;
-          for (int o = rightInARow; o > -1; o--) {
-            if (selectedSymbols[i] == sortedSymbols[o]) {
-              if (o == rightInARow) rightInARow++;
-              equals = true; 
-              o = -1;
-            }
-          }
-          if (equals) {
-            digitalWrite(greenLedPins[i], HIGH);
-            if (rightInARow == 4) defused = true;
-          } else {
-              strikes++; 
-              Serial.print("X ");
-              digitalWrite(redLedPin, HIGH); 
-              previousRedLedMillis = currentMillis; 
-            }
-        }
-      } 
-    } else digitalWrite(greenLedPin, HIGH);
-  } else {
-    digitalWrite(redLedPin, HIGH);
-    digitalWrite(greenLedPin, LOW);
-    for (int i = 0; i < 4; i++) {
-      digitalWrite(greenLedPins[i], LOW);
+    if (strikes < 1) {
+      if (currentMillis - previousMillis >= 1000) {
+        if (hold) timerNum += 2;
+          else timerNum--;
+        if (timerNum > 45) timerNum = 45;
+          else if (timerNum < 0) timerNum = 0;
+        Serial.print(timerNum); 
+        Serial.print(" ");
+        previousMillis = currentMillis;
+      }
+      int numToOff = timerNum / 5;
+      if (timerNum % 5) numToOff++;
+      for (int i = 0; i < 9; i++) {
+        if (i < numToOff) digitalWrite(ledPins[i], LOW); 
+          else digitalWrite(ledPins[i], HIGH);
+      }
+      if (!digitalRead(buttonPin)) {
+        hold = true;
+      } else hold = false;
+      if (!timerNum) {
+        strikes++; 
+        Serial.println();
+        Serial.print("Strikes: X");
+        digitalWrite(redLedPin, HIGH); 
+        previousRedLedMillis = currentMillis;
+      }
     }
-  }
-  delay(20);
+  } 
+  delay(20); 
 }
