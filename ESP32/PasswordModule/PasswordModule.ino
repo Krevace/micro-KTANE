@@ -1,0 +1,219 @@
+#include <LiquidCrystal_I2C.h>
+
+char serialNumChars[34] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+String indicatorLabels[11] = {"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"};
+String portTypes[6] = {"DVI-D", "PS/2", "RJ-45", "Stereo RCA", "Parallel", "Serial"};
+String wordList[36] = {"ABOUT", "AFTER", "AGAIN", "BELOW", "COULD", "EVERY", "FIRST", "FOUND", "GREAT", "HOUSE", "LARGE", "LEARN", "NEVER", "OTHER", "PLACE", "PLANT", "POINT", "RIGHT", "SMALL", "SOUND", "SPELL", "STILL", "STUDY", "THEIR", "THERE", "THESE", "THING", "THINK", "THREE", "WATER", "WHERE", "WHICH", "WORLD", "WOULD", "WRITE", "XXXXX"};
+
+bool serialOdd = false;
+int batteryAmount = 0;
+bool indicatorCheck = false;
+bool parallelCheck = false;
+int strikes = 0;
+bool defused = false;
+long currentMillis;
+long previousRedLedMillis = 0;
+bool pressed[11];
+String chosenWord; 
+char letterLists[5][6];
+int currentPos[5]; 
+bool needToDisplay = true;
+
+//ESP32 Pins
+LiquidCrystal_I2C lcd(0x27, 16, 2);  
+int buttonPins[11] = {13, 14, 27, 25, 23, 4, 5, 18, 19, 12, 26};
+int greenLedPin = 32;
+int redLedPin = 33;
+
+void setup() {
+  //GENERAL SETUP
+  Serial.begin(115200);
+  randomSeed(analogRead(0));
+  for (int i = 0; i < 11; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
+  pinMode(redLedPin, OUTPUT);
+  digitalWrite(redLedPin, LOW);
+  pinMode(greenLedPin, OUTPUT);
+  digitalWrite(greenLedPin, LOW);
+  lcd.init();                 
+  lcd.backlight();
+
+  //BOMB SETUP
+  Serial.println("--BOMB CONFIGURATION--");
+  String serialNum; 
+  for (int i = 0; i < 5; i++) {
+    serialNum += serialNumChars[random(0, 34)];
+  }
+  serialNum += serialNumChars[random(24, 34)];
+  Serial.println(" Serial: " + serialNum);
+  int x = serialNum.charAt(serialNum.length()-1);
+  if (x % 2) serialOdd = true; 
+
+  int batteryWidgetAmount = random(0, 6); 
+  int indicatorWidgetAmount = random(0, 5-batteryWidgetAmount+1);
+  int portWidgetAmount = 5-batteryWidgetAmount-indicatorWidgetAmount; 
+  Serial.print("Widgets: "); 
+
+  for (int i = 0; i < batteryWidgetAmount; i++) { 
+    if (random(0, 2)) {
+      Serial.print("|2 AA|");
+      batteryAmount += 2; 
+    } else {
+      Serial.print("|1 D|");
+      batteryAmount++;
+    }
+    Serial.print(" "); 
+  }
+
+  String chosenLabels[5]; 
+  for (int i = 0; i < indicatorWidgetAmount; i++) {
+    String indicator;
+    bool alreadyExists;
+    do {
+      alreadyExists = false;
+      indicator = indicatorLabels[random(0,11)];
+      for (int i = 0; i < 5; i++) {
+        if (indicator == chosenLabels[i]) alreadyExists = true;
+      }
+    } while (alreadyExists);
+    chosenLabels[i] = indicator; 
+    Serial.print("|");
+    Serial.print(indicator); 
+    if (random(0,2)) {
+      Serial.print("(LIT)");
+      if (indicator == "FRK" || indicator == "CAR") indicatorCheck = true; 
+    } else Serial.print("(OFF)");
+    Serial.print("| ");
+  }
+
+  for (int i = 0; i < portWidgetAmount; i++) {
+    int lowerBound = 4;
+    int upperBound = 2;
+    int upperBound2 = 6;
+    if (random(0, 2)) {
+      lowerBound = 0;
+      upperBound = 4;
+      upperBound2 = 4;
+    }
+    Serial.print("|");
+    int portAmount = random(0, upperBound+1); 
+    String chosenPorts[upperBound];
+    String port; 
+    bool alreadyExists; 
+    for (int i = 0; i < portAmount; i++) {
+      do {
+        alreadyExists = false;
+        port = portTypes[random(lowerBound, upperBound2)];
+        for (int i = 0; i < upperBound; i++) {
+          if (port == chosenPorts[i]) alreadyExists = true;
+        }
+      } while (alreadyExists); 
+      chosenPorts[i] = port; 
+      if (port == "Parallel") parallelCheck = true; 
+      Serial.print(port); 
+      if (portAmount > 1 && i < portAmount-1) Serial.print(",");
+    }
+    Serial.print("| ");
+  }
+
+  //MODULE SETUP
+  Serial.println();
+  Serial.println();
+  Serial.println("--MODULE INFORMATION--");
+  int rand = random(0, 35); 
+  chosenWord = wordList[rand];
+  wordList[rand] = ""; 
+  for (int i = 0; i < 5; i++) {
+    for (int ii = 0; ii < 6; ii++) {
+      if (ii == 0) letterLists[i][ii] = chosenWord.charAt(i); 
+        else {
+          int count = 0;
+          do {
+            count++;
+            if (count > 50) rand = 35;        //make sure the setup doesn't run infinitely
+              else rand = random(0, 35); 
+          } while (wordList[rand].isEmpty() || alreadyExists(rand, i)); //make sure there are no dupe letters in the same column, make sure other solution words can't be formed  (for each column, pull 5 letters from that position from 5 words, then exclude those words from the pool in the following columns)
+          letterLists[i][ii] = wordList[rand].charAt(i);
+          wordList[rand] = ""; 
+        }
+    }
+  }
+  int count0;
+  do {                      //make sure the word isn't formed at the start
+    count0 = 0;
+    for (int i = 0; i < 5; i++) {
+      currentPos[i] = random(0, 6); 
+      if (currentPos[i] == 0) count0++; 
+    }
+  } while (count0 > 2);
+  
+  //FIND SOLUTION
+  Serial.println();
+  Serial.println("--DEFUSAL SOLUTION--");
+  Serial.print("   Word: " + chosenWord);
+
+  //STRIKES
+  Serial.println();
+  Serial.println();
+  Serial.println("--STATUS--");
+  Serial.print("Strikes: ");
+}
+
+void loop() {
+  if (strikes < 3) {
+    if (defused) {
+      digitalWrite(greenLedPin, HIGH);
+    }
+    currentMillis = millis();
+    if (currentMillis - previousRedLedMillis >= 500) digitalWrite(redLedPin, LOW);
+    if (needToDisplay) {
+      lcd.setCursor(5, 0);
+      for (int i = 0; i < 5; i++) {
+        lcd.print(letterLists[i][currentPos[i]]);
+      }
+      needToDisplay = false;
+    }
+    for (int i = 0; i < 11; i++) {
+      if (!digitalRead(buttonPins[i])) pressed[i] = true; 
+      if (digitalRead(buttonPins[i]) && pressed[i]) {
+        pressed[i] = false;
+        if (i < 10) {
+          if (i > 4) {
+            currentPos[i-5]--; 
+            if (currentPos[i-5] < 0) currentPos[i-5] = 5;
+          } else {
+            currentPos[i]++;
+            if (currentPos[i] > 5) currentPos[i] = 0;
+          }
+          needToDisplay = true;
+        } else {
+          bool correct = true;
+          for (int i = 0; i < 5; i++) {
+            if (currentPos[i] != 0) correct = false;
+          }
+          if (correct) defused = true; 
+            else {
+              strikes++; 
+              Serial.print("X ");
+              digitalWrite(redLedPin, HIGH); 
+              previousRedLedMillis = currentMillis; 
+            }
+        }
+      }
+    }
+  } else {
+    digitalWrite(redLedPin, HIGH); 
+    digitalWrite(greenLedPin, LOW); 
+    lcd.clear(); 
+  }
+  delay(20); 
+}
+
+bool alreadyExists(int rand, int i) {
+  char letter = wordList[rand].charAt(i); 
+  for (int ii = 0; ii < 6; ii++) {
+    if (letterLists[i][ii] == letter) return true;
+  }
+  return false;
+}
